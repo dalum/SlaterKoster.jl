@@ -1,28 +1,37 @@
 module SlaterKoster
 
 using DataFrames
+using LinearAlgebra
 
-abstract type SlaterKosterTable end
+abstract type SlaterKosterTable{T} end
 
-struct HomoNuclearTable <: SlaterKosterTable
+struct HomoNuclearTable{T} <: SlaterKosterTable{T}
     element_name::String
     energy_table::DataFrame
+    grid_dist::T
+    n_grid_points::Int
     mass_table::DataFrame
     integral_table::DataFrame
 end
 
-struct HeteroNuclearTable <: SlaterKosterTable
+struct HeteroNuclearTable{T} <: SlaterKosterTable{T}
     first_element_name::String
     second_element_name::String
+    grid_dist::T
+    n_grid_points::Int
     mass_table::DataFrame
     integral_table::DataFrame
 end
 
 """
-    read(filepath; [element_names])
+    read(filepath::String; [element_names::NTuple{2,String}])
 
-Parse `filepath` and return a Slater-Koster table derived from its
-contents.
+Parse an SKF located at `filepath` and return a Slater-Koster table
+derived from its contents.  The element names will be inferred from
+the file name if it follows the standard `X-Y.skf` format, where `X`,
+and `Y` are element names.  Alternatively, if a tuple of names is
+provided to the keyword argument `element_names`, the element names
+listed in the tuple will be used instead.
 
 """
 read(filepath; element_names=(nothing, nothing)) = read(Float64, filepath, element_names=element_names)
@@ -41,23 +50,23 @@ function read(T::Type, filepath::String; element_names=(nothing, nothing))
     if first_element_name == second_element_name
         if startswith(lines[1], "@")
             return HomoNuclearTable(
-                first_element_name,
+                String(first_element_name),
                 _readextendedformat_homonuclear(T, lines)...)
         else
             return HomoNuclearTable(
-                first_element_name,
+                String(first_element_name),
                 _readsimpleformat_homonuclear(T, lines)...)
         end
     else
         if startswith(lines[1], "@")
             return HeteroNuclearTable(
-                first_element_name,
-                second_element_name,
+                String(first_element_name),
+                String(second_element_name),
                 _readextendedformat_heteronuclear(T, lines)...)
         else
             return HeteroNuclearTable(
-                first_element_name,
-                second_element_name,
+                String(first_element_name),
+                String(second_element_name),
                 _readsimpleformat_heteronuclear(T, lines)...)
         end
     end
@@ -92,7 +101,7 @@ function _readsimpleformat_homonuclear(T, lines)
     for (i, line) in enumerate(lines[4:4+n_grid_points-1])
         push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
     end
-    return energy_table, mass_table, integral_table
+    return grid_dist, n_grid_points, energy_table, mass_table, integral_table
 end
 
 function _readsimpleformat_heteronuclear(T, lines)
@@ -117,7 +126,7 @@ function _readsimpleformat_heteronuclear(T, lines)
     for (i, line) in enumerate(lines[3:3+n_grid_points-1])
         push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
     end
-    return mass_table, integral_table
+    return grid_dist, n_grid_points, mass_table, integral_table
 end
 
 function _readextendedformat_homonuclear(T, lines)
@@ -155,7 +164,7 @@ function _readextendedformat_homonuclear(T, lines)
     for (i, line) in enumerate(lines[5:5+n_grid_points-1])
         push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
     end
-    return energy_table, mass_table, integral_table
+    return grid_dist, n_grid_points, energy_table, mass_table, integral_table
 end
 
 function _readextendedformat_heteronuclear(T, lines)
@@ -186,7 +195,64 @@ function _readextendedformat_heteronuclear(T, lines)
     for (i, line) in enumerate(lines[4:4+n_grid_points-1])
         push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
     end
-    return mass_table, integral_table
+    return grid_dist, n_grid_points, mass_table, integral_table
+end
+
+"""
+    hamiltonian(skt::SlaterKosterTable, r::NTuple{3,<:Real}, ϕ1::Symbol, ϕ2::Symbol)
+
+Return the matrix element corresponding to `ϕ1(r)'H*ϕ2(0)`, where
+`ϕ1`, `ϕ2` are tesseral spherical harmonic orbitals separated by a
+vector `r` with entries given in atomic units (i. e. Bohr radii).
+
+Accepted symbols for orbitals are:
+
+:s, :px, :py, :pz
+
+[!!!Not yet supported: :dx2y2, :dxy, :dxz, :dyz, :dz2, :f...]
+
+"""
+function hamiltonian(skt::SlaterKosterTable{T}, r::AbstractVector{T}, ϕ1::Symbol, ϕ2::Symbol) where {T<:Real}
+    @assert length(r) == 3 "`length(r) = $(length(r)) != 3`: `r` is not a valid 3-dimensional vector"
+    min_dist, max_dist = extrema(skt.integral_table[:dist])
+    norm_r = norm(r)
+    @assert min_dist <= norm_r <= max_dist "`norm(r) = $norm_r` is outside table bounds: [$grid_dist, $max_dist]"
+    grid_dist = skt.grid_dist
+    lo = floor(Int, norm_r/grid_dist)
+    hi = lo + 1
+    rem = norm_r % grid_dist
+    # Interpolate the table for the given distance
+    table = DataFrame(Dict(
+        name => (1 - rem)*col[1] + rem*col[2] for (name,col) in eachcol(skt.integral_table[lo:hi, :])))
+    # Normalize the separation vector
+    d = r ./ norm_r
+    return hamiltonian(table, d, Val(ϕ1), Val(ϕ2))
+end
+
+function hamiltonian(df::DataFrame, ::AbstractVector{T}, ::Val{:s}, ::Val{:s}) where {T<:Real}
+    return df.Hss0
+end
+
+for (i, x) in [(1, :(:x)), (2, :(:y)), (3, :(:z))]
+    @eval @inline function hamiltonian(df::DataFrame, d::AbstractVector{T}, ::Val{:s}, ::Val{Symbol("p", $x)}) where {T<:Real}
+        return d[$i] * df.Hsp0
+    end
+
+    @eval @inline function hamiltonian(df::DataFrame, d::AbstractVector{T}, ::Val{Symbol("p", $x)}, ::Val{:s}) where {T<:Real}
+        return -d[$i] * df.Hsp0
+    end
+
+    for (j, y) in [(1, :(:x)), (2, :(:y)), (3, :(:z))]
+        if i == j
+            @eval @inline function hamiltonian(df::DataFrame, d::AbstractVector{T}, ::Val{Symbol("p", $x)}, ::Val{Symbol("p", $x)}) where {T<:Real}
+                return d[$i]^2*df.Hpp0 + (1 - d[$i]^2)*df.Hpp1
+            end
+        else
+            @eval @inline function hamiltonian(df::DataFrame, d::AbstractVector{T}, ::Val{Symbol("p", $x)}, ::Val{Symbol("p", $y)}) where {T<:Real}
+                return d[$i]*d[$j]*(df.Hpp0 - df.Hpp1)
+            end
+        end
+    end
 end
 
 end # module
