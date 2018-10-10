@@ -7,9 +7,9 @@ abstract type SlaterKosterTable{T} end
 
 struct HomoNuclearTable{T} <: SlaterKosterTable{T}
     element_name::String
-    energy_table::DataFrame
     grid_dist::T
     n_grid_points::Int
+    energy_table::DataFrame
     mass_table::DataFrame
     integral_table::DataFrame
 end
@@ -213,10 +213,10 @@ Accepted symbols for orbitals are:
 
 """
 function hamiltonian(skt::SlaterKosterTable{T}, r::AbstractVector{T}, ϕ1::Symbol, ϕ2::Symbol) where {T<:Real}
-    @assert length(r) == 3 "`length(r) = $(length(r)) != 3`: `r` is not a valid 3-dimensional vector"
+    @assert length(r) == 3 "`length(r) = $(length(r)) != 3`: `r` is not a valid 3-dimensional vector: $r"
     min_dist, max_dist = extrema(skt.integral_table[:dist])
     norm_r = norm(r)
-    @assert min_dist <= norm_r <= max_dist "`norm(r) = $norm_r` is outside table bounds: [$grid_dist, $max_dist]"
+    @assert min_dist <= norm_r <= max_dist "`norm(r) = $norm_r` is outside table bounds: [$min_dist, $max_dist]"
     grid_dist = skt.grid_dist
     lo = floor(Int, norm_r/grid_dist)
     hi = lo + 1
@@ -226,7 +226,7 @@ function hamiltonian(skt::SlaterKosterTable{T}, r::AbstractVector{T}, ϕ1::Symbo
         name => (1 - rem)*col[1] + rem*col[2] for (name,col) in eachcol(skt.integral_table[lo:hi, :])))
     # Normalize the separation vector
     d = r ./ norm_r
-    return hamiltonian(table, d, Val(ϕ1), Val(ϕ2))
+    return hamiltonian(table, d, Val(ϕ1), Val(ϕ2))[]
 end
 
 function hamiltonian(df::DataFrame, ::AbstractVector{T}, ::Val{:s}, ::Val{:s}) where {T<:Real}
@@ -236,10 +236,6 @@ end
 for (i, x) in [(1, :(:x)), (2, :(:y)), (3, :(:z))]
     @eval @inline function hamiltonian(df::DataFrame, d::AbstractVector{T}, ::Val{:s}, ::Val{Symbol("p", $x)}) where {T<:Real}
         return d[$i] * df.Hsp0
-    end
-
-    @eval @inline function hamiltonian(df::DataFrame, d::AbstractVector{T}, ::Val{Symbol("p", $x)}, ::Val{:s}) where {T<:Real}
-        return -d[$i] * df.Hsp0
     end
 
     for (j, y) in [(1, :(:x)), (2, :(:y)), (3, :(:z))]
