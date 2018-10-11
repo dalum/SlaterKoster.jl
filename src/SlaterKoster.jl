@@ -6,7 +6,7 @@ using LinearAlgebra
 abstract type SlaterKosterTable{T} end
 
 struct HomoNuclearTable{T} <: SlaterKosterTable{T}
-    element_name::String
+    element_name::Symbol
     grid_dist::T
     n_grid_points::Int
     energy_table::DataFrame
@@ -15,8 +15,8 @@ struct HomoNuclearTable{T} <: SlaterKosterTable{T}
 end
 
 struct HeteroNuclearTable{T} <: SlaterKosterTable{T}
-    first_element_name::String
-    second_element_name::String
+    first_element_name::Symbol
+    second_element_name::Symbol
     grid_dist::T
     n_grid_points::Int
     mass_table::DataFrame
@@ -50,23 +50,23 @@ function read(T::Type, filepath::String; element_names=(nothing, nothing))
     if first_element_name == second_element_name
         if startswith(lines[1], "@")
             return HomoNuclearTable(
-                String(first_element_name),
+                Symbol(first_element_name),
                 _readextendedformat_homonuclear(T, lines)...)
         else
             return HomoNuclearTable(
-                String(first_element_name),
+                Symbol(first_element_name),
                 _readsimpleformat_homonuclear(T, lines)...)
         end
     else
         if startswith(lines[1], "@")
             return HeteroNuclearTable(
-                String(first_element_name),
-                String(second_element_name),
+                Symbol(first_element_name),
+                Symbol(second_element_name),
                 _readextendedformat_heteronuclear(T, lines)...)
         else
             return HeteroNuclearTable(
-                String(first_element_name),
-                String(second_element_name),
+                Symbol(first_element_name),
+                Symbol(second_element_name),
                 _readsimpleformat_heteronuclear(T, lines)...)
         end
     end
