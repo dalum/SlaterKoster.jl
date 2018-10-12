@@ -49,6 +49,35 @@ function hamiltonian(skt::SlaterKosterTable, r, ϕ1, ϕ2)
     return hamiltonian(table, r, last(ϕ1), last(ϕ2))
 end
 
+"""
+    hamiltonian(skt::SlaterKosterTable, ϕ)
+
+Return the diagonal hamiltonian matrix element corresponding to `ϕ`.
+`ϕ` is a pair of `element_symbol => orbital_symbol`, where
+`element_symbol` is a valid `element_symbol` from
+`elementsymbols(skt)`, and `orbital_symbol` is a tesseral spherical
+harmonic orbital.
+
+Accepted symbols for the orbitals are:
+
+:s, :px, :py, :pz
+
+[!!!Not yet supported: :dx2y2, :dxy, :dxz, :dyz, :dz2, :f...]
+
+"""
+hamiltonian(skt::SlaterKosterTable, ϕ) = hamiltonian(skt.data[first(ϕ), first(ϕ)], last(ϕ))
+
+function hamiltonian(skt::HomoNuclearTable, orbital_symbol::Symbol)
+    orbital = Symbol(first(string(orbital_symbol)))
+    df = skt.energy_table
+    E = orbital === :s ? df.Es :
+        orbital === :p ? df.Ep :
+        orbital === :d ? df.Ed :
+        orbital === :f ? df.Ef :
+        error("invalid orbital symbol: $orbital_symbol")
+    return E[]
+end
+
 function hamiltonian(skt::PrimitiveTable, r, orbital_symbol1::Symbol, orbital_symbol2::Symbol)
     @assert length(r) == 3 "`length(r) = $(length(r)) != 3`: `r` is not a valid 3-dimensional vector: $r"
     min_dist, max_dist = extrema(skt.integral_table[:dist])
@@ -71,7 +100,7 @@ function hamiltonian(skt::PrimitiveTable, r, orbital_symbol1::Symbol, orbital_sy
     return hamiltonian(table, d, Val(orbital_symbol1), Val(orbital_symbol2))[]
 end
 
-function hamiltonian(df::DataFrame, r, ::Val{:s}, ::Val{:s})
+function hamiltonian(df::DataFrame, d, ::Val{:s}, ::Val{:s})
     return df.Hss0
 end
 

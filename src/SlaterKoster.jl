@@ -7,8 +7,8 @@ using LinearAlgebra
 # Constants
 ##################################################
 
-# Electron mass in atomic mass units
-const m_e = 1822.888486192
+# Atomic mass unit in atomic units (`amu / m_e`)
+const amu = 1822.888486192
 
 ##################################################
 
@@ -44,8 +44,8 @@ function Base.show(io::IO, skt::SlaterKosterTable)
     print(io, join(("$(first(key)) => $(last(key))" for key in keys(skt.data) |> collect |> sort!), "\n    "))
 end
 
-elementsymbols(t::HomoNuclearTable) = [t.element_symbol]
-elementsymbols(t::HeteroNuclearTable) = [t.first_element_symbol, t.second_element_symbol]
+elementsymbols(skt::HomoNuclearTable) = [skt.element_symbol]
+elementsymbols(skt::HeteroNuclearTable) = [skt.first_element_symbol, skt.second_element_symbol]
 elementsymbols(skt::SlaterKosterTable) = reduce(vcat, elementsymbols.(values(skt.data))) |> unique! |> sort!
 
 include("load.jl")
