@@ -36,7 +36,9 @@ Accepted symbols for the orbitals are:
 
 :s, :px, :py, :pz
 
-[!!!Not yet supported: :dx2y2, :dxy, :dxz, :dyz, :dz2, :f...]
+!!! note
+    The following orbitals are not yet supported: :dx2y2, :dxy, :dxz,
+    :dyz, :dz2, :f...
 
 """
 function hamiltonian(skt::SlaterKosterTable, r, ϕ1, ϕ2)
@@ -62,10 +64,13 @@ Accepted symbols for the orbitals are:
 
 :s, :px, :py, :pz
 
-[!!!Not yet supported: :dx2y2, :dxy, :dxz, :dyz, :dz2, :f...]
+!!! note
+    The following orbitals are not yet supported: :dx2y2, :dxy, :dxz,
+    :dyz, :dz2, :f...
 
 """
-hamiltonian(skt::SlaterKosterTable, ϕ) = hamiltonian(skt.data[first(ϕ), first(ϕ)], last(ϕ))
+hamiltonian(skt::SlaterKosterTable, ϕ) =
+    hamiltonian(skt.data[first(ϕ), first(ϕ)], last(ϕ))
 
 function hamiltonian(skt::HomoNuclearTable, orbital_symbol::Symbol)
     orbital = Symbol(first(string(orbital_symbol)))
@@ -75,7 +80,7 @@ function hamiltonian(skt::HomoNuclearTable, orbital_symbol::Symbol)
         orbital === :d ? df.Ed :
         orbital === :f ? df.Ef :
         error("invalid orbital symbol: $orbital_symbol")
-    return E[]
+    return electronvolt*E[]
 end
 
 function hamiltonian(skt::PrimitiveTable, r, orbital_symbol1::Symbol, orbital_symbol2::Symbol)
@@ -97,7 +102,7 @@ function hamiltonian(skt::PrimitiveTable, r, orbital_symbol1::Symbol, orbital_sy
         name => spline_catmullrom(rem, col[iprev], col[ilo], col[ihi], col[inext]) for (name,col) in eachcol(skt.integral_table[slice, :])))
     # Normalize the separation vector
     d = r ./ norm_r
-    return hamiltonian(table, d, Val(orbital_symbol1), Val(orbital_symbol2))[]
+    return electronvolt*hamiltonian(table, d, Val(orbital_symbol1), Val(orbital_symbol2))[]
 end
 
 function hamiltonian(df::DataFrame, d, ::Val{:s}, ::Val{:s})

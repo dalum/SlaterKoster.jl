@@ -8,7 +8,9 @@ using LinearAlgebra
 ##################################################
 
 # Atomic mass unit in atomic units (`amu / m_e`)
-const amu = 1822.888486192
+const amu = 1_822.888_486_192
+# Hartree in units of electronvolts (eV)
+const electronvolt = 27.211_386_02
 
 ##################################################
 
@@ -32,9 +34,16 @@ struct HeteroNuclearTable{T} <: PrimitiveTable{T}
     integral_table::DataFrame
 end
 
+function Base.:(==)(t1::T, t2::T) where {T<:PrimitiveTable}
+    fields = fieldnames(T)
+    return all(field -> getfield(t1, field) == getfield(t2, field), fields)
+end
+
 struct SlaterKosterTable{T}
     data::Dict{Tuple{Symbol,Symbol},PrimitiveTable{T}}
 end
+
+Base.getindex(skt::SlaterKosterTable, x) = getindex(skt.data, x)
 
 function Base.show(io::IO, skt::SlaterKosterTable)
     print(io, "SlaterKosterTable with entries for elements: ")
@@ -50,5 +59,8 @@ elementsymbols(skt::SlaterKosterTable) = reduce(vcat, elementsymbols.(values(skt
 
 include("load.jl")
 include("hamiltonian.jl")
+
+mass(skt::SlaterKosterTable, element_symbol::Symbol) = mass(skt.data[element_symbol, element_symbol])
+mass(skt::HomoNuclearTable) = amu*skt.mass_table[:mass][]
 
 end # module

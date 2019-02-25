@@ -41,7 +41,7 @@ default `Float64`.
 See also [`loaddir`](@ref SlaterKoster.loaddir).
 
 """
-load(filepath; element_symbols=(nothing, nothing)) = read(Float64, filepath, element_symbols=element_symbols)
+load(filepath; element_symbols=(nothing, nothing)) = load(Float64, filepath, element_symbols=element_symbols)
 function load(T::Type, filepath::String; element_symbols=(nothing, nothing))
     dirname, filename = splitdir(filepath)
     if element_symbols === (nothing, nothing)
