@@ -79,15 +79,36 @@ function load(T::Type, filepath::String; element_symbols=(nothing, nothing))
     end
 end
 
+function parseheader(T::Type, line)
+    words = filter(word -> !all(isspace, word), split(line, x -> isspace(x) || x === ','))
+    return parse(T, words[1]), parse(Int, words[2])
+end
+
+function parseline(T::Type, line)
+    words = filter(word -> !all(isspace, word), split(line, x -> isspace(x) || x === ','))
+    i = 1
+    while i <= length(words)
+        m = match(r"([0-9]+)\*([0-9\.]+)", words[i])
+        if m !== nothing
+            deleteat!(words, i)
+            for _ in 1:parse(Int, m[1])
+                insert!(words, i, m[2])
+            end
+        end
+        i += 1
+    end
+    return parse.(T, words)
+end
+
 function _readsimpleformat_homonuclear(T, lines)
-    grid_dist, n_grid_points = parse.((T, Int), split(lines[1]))
+    grid_dist, n_grid_points = parseheader(T, lines[1])
 
     energy_table = DataFrame(
         Ed = T[], Ep = T[], Es = T[],
         SPE = T[],
         Ud = T[], Up = T[], Us = T[],
         fd = T[], fp = T[], fs = T[])
-    push!(energy_table, parse.(T, split(lines[2])))
+    push!(energy_table, parseline(T, lines[2]))
 
     mass_table = DataFrame(
         mass = T[],
@@ -96,7 +117,7 @@ function _readsimpleformat_homonuclear(T, lines)
         rcut = T[],
         d1 = T[], d2 = T[], d3 = T[], d4 = T[], d5 = T[],
         d6 = T[], d7 = T[], d8 = T[], d9 = T[], d10 = T[])
-    push!(mass_table, parse.(T, split(lines[3])))
+    push!(mass_table, parseline(T, lines[3]))
 
     integral_table = DataFrame(
         dist = T[],
@@ -106,13 +127,13 @@ function _readsimpleformat_homonuclear(T, lines)
         Spp1 = T[], Ssd0 = T[], Ssp0 = T[], Sss0 = T[])
 
     for (i, line) in enumerate(lines[4:4+n_grid_points-1])
-        push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
+        push!(integral_table, vcat([i*grid_dist], parseline(T, line)))
     end
     return grid_dist, n_grid_points, energy_table, mass_table, integral_table
 end
 
 function _readsimpleformat_heteronuclear(T, lines)
-    grid_dist, n_grid_points = parse.((T, Int), split(lines[1]))
+    grid_dist, n_grid_points = parseheader(T, lines[1])
 
     mass_table = DataFrame(
         mass = T[],
@@ -121,7 +142,7 @@ function _readsimpleformat_heteronuclear(T, lines)
         rcut = T[],
         d1 = T[], d2 = T[], d3 = T[], d4 = T[], d5 = T[],
         d6 = T[], d7 = T[], d8 = T[], d9 = T[], d10 = T[])
-    push!(mass_table, parse.(T, split(lines[2])))
+    push!(mass_table, parseline(T, lines[2]))
 
     integral_table = DataFrame(
         dist = T[],
@@ -131,20 +152,20 @@ function _readsimpleformat_heteronuclear(T, lines)
         Spp1 = T[], Ssd0 = T[], Ssp0 = T[], Sss0 = T[])
 
     for (i, line) in enumerate(lines[3:3+n_grid_points-1])
-        push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
+        push!(integral_table, vcat([i*grid_dist], parseline(T, line)))
     end
     return grid_dist, n_grid_points, mass_table, integral_table
 end
 
 function _readextendedformat_homonuclear(T, lines)
-    grid_dist, n_grid_points = parse.((T, Int), split(lines[2]))
+    grid_dist, n_grid_points = parseheader(T, lines[1])
 
     energy_table = DataFrame(
         Ef = T[], Ed = T[], Ep = T[], Es = T[],
         SPE = T[],
         Uf = T[], Ud = T[], Up = T[], Us = T[],
         ff = T[], fd = T[], fp = T[], fs = T[])
-    push!(energy_table, parse.(T, split(lines[3])))
+    push!(energy_table, parseline(T, lines[3]))
 
     mass_table = DataFrame(
         mass = T[],
@@ -153,7 +174,7 @@ function _readextendedformat_homonuclear(T, lines)
         rcut = T[],
         d1 = T[], d2 = T[], d3 = T[], d4 = T[], d5 = T[],
         d6 = T[], d7 = T[], d8 = T[], d9 = T[], d10 = T[])
-    push!(mass_table, parse.(T, split(lines[4])))
+    push!(mass_table, parseline(T, lines[4]))
 
     integral_table = DataFrame(
         dist = T[],
@@ -169,13 +190,13 @@ function _readextendedformat_homonuclear(T, lines)
         Ssf0 = T[], Ssd0 = T[], Ssp0 = T[], Sss0 = T[])
 
     for (i, line) in enumerate(lines[5:5+n_grid_points-1])
-        push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
+        push!(integral_table, vcat([i*grid_dist], parseline(T, line)))
     end
     return grid_dist, n_grid_points, energy_table, mass_table, integral_table
 end
 
 function _readextendedformat_heteronuclear(T, lines)
-    grid_dist, n_grid_points = parse.((T, Int), split(lines[2]))
+    grid_dist, n_grid_points = parseheader(T, lines[1])
 
     mass_table = DataFrame(
         mass = T[],
@@ -184,7 +205,7 @@ function _readextendedformat_heteronuclear(T, lines)
         rcut = T[],
         d1 = T[], d2 = T[], d3 = T[], d4 = T[], d5 = T[],
         d6 = T[], d7 = T[], d8 = T[], d9 = T[], d10 = T[])
-    push!(mass_table, parse.(T, split(lines[3])))
+    push!(mass_table, parseline(T, lines[3]))
 
     integral_table = DataFrame(
         dist = T[],
@@ -200,7 +221,7 @@ function _readextendedformat_heteronuclear(T, lines)
         Ssf0 = T[], Ssd0 = T[], Ssp0 = T[], Sss0 = T[])
 
     for (i, line) in enumerate(lines[4:4+n_grid_points-1])
-        push!(integral_table, vcat([i*grid_dist], parse.(T, split(line))))
+        push!(integral_table, vcat([i*grid_dist], parseline(T, line)))
     end
     return grid_dist, n_grid_points, mass_table, integral_table
 end

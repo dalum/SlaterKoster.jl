@@ -9,8 +9,10 @@ using LinearAlgebra
 
 # Atomic mass unit in atomic units (`amu / m_e`)
 const amu = 1_822.888_486_192
-# Hartree in units of electronvolts (eV)
+# Hartree in units of electronvolts (`eV / hartree`)
 const electronvolt = 27.211_386_02
+# Bohr radius in units of Ångström (`Å / a0`)
+const a0 = 0.529_177_210_67
 
 ##################################################
 

@@ -26,7 +26,7 @@ _orbitalrank(orbital_symbol) =
 
 Return the hamiltonian matrix element corresponding to hopping from
 `ϕ2` to `ϕ1`, where `ϕ1` is located at `r` relative to `ϕ2`, given in
-atomic units (i. e. Bohr radii).
+Angstrom.
 
 `ϕ1`, `ϕ2` are pairs of `element_symbol => orbital_symbol`, where
 `element_symbol` is a valid `element_symbol` from `elementsymbols(skt)`,
@@ -84,6 +84,8 @@ function hamiltonian(skt::HomoNuclearTable, orbital_symbol::Symbol)
 end
 
 function hamiltonian(skt::PrimitiveTable, r, orbital_symbol1::Symbol, orbital_symbol2::Symbol)
+    # Convert distance to atomic units for indexing
+    r = r/a0
     @assert length(r) == 3 "`length(r) = $(length(r)) != 3`: `r` is not a valid 3-dimensional vector: $r"
     min_dist, max_dist = extrema(skt.integral_table[:dist])
     norm_r = norm(r)
