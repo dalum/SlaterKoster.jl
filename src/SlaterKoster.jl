@@ -60,9 +60,11 @@ elementsymbols(skt::HeteroNuclearTable) = [skt.first_element_symbol, skt.second_
 elementsymbols(skt::SlaterKosterTable) = reduce(vcat, elementsymbols.(values(skt.data))) |> unique! |> sort!
 
 include("load.jl")
+include("util.jl")
 include("hamiltonian.jl")
+include("overlap.jl")
 
 mass(skt::SlaterKosterTable, element_symbol::Symbol) = mass(skt.data[element_symbol, element_symbol])
-mass(skt::HomoNuclearTable) = amu*skt.mass_table[:mass][]
+mass(skt::HomoNuclearTable) = amu*skt.mass_table[!, :mass][]
 
 end # module
