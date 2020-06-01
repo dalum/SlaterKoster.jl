@@ -78,7 +78,8 @@ function hamiltonian(skt::PrimitiveTable, r, orbital_symbol1::Symbol, orbital_sy
     iprev, ilo = lo > 1 ? (1, 2) : (1, 1)
     ihi, inext = hi < skt.n_grid_points ? (ilo + 1, ilo + 2) : (ilo + 1, ilo + 1)
     table = DataFrame(Dict(
-        name => spline_catmullrom(rem, col[iprev], col[ilo], col[ihi], col[inext]) for (name,col) in eachcol(skt.integral_table[slice, :], true)))
+        name => spline_catmullrom(rem, col[iprev], col[ilo], col[ihi], col[inext]) for (name,col) in collect(pairs(eachcol(skt.integral_table[slice, :])))
+    ))
     # Normalize the separation vector
     d = r ./ norm_r
     return electronvolt*hamiltonian(table, d, Val(orbital_symbol1), Val(orbital_symbol2))[]
