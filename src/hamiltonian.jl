@@ -1,4 +1,13 @@
 """
+    hamiltonian(skt::SlaterKosterTable)
+
+Return a function equivalent to
+`(args...) -> hamiltonian(skt, args...)`.
+
+"""
+hamiltonian(skt::SlaterKosterTable) = (args...) -> hamiltonian(skt, args...)
+
+"""
     hamiltonian(skt::SlaterKosterTable, r::NTuple{3,<:Real}, ϕ1, ϕ2)
 
 Return the hamiltonian matrix element corresponding to hopping from

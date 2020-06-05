@@ -1,4 +1,12 @@
 """
+    overlap(skt::SlaterKosterTable)
+
+Return a function equivalent to `(args...) -> overlap(skt, args...)`.
+
+"""
+overlap(skt::SlaterKosterTable) = (args...) -> overlap(skt, args...)
+
+"""
     overlap(skt::SlaterKosterTable, r::NTuple{3,<:Real}, ϕ1, ϕ2)
 
 Return the overlap matrix element between `ϕ2` and `ϕ1`, where `ϕ1` is
